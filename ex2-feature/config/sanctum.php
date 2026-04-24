@@ -1,7 +1,5 @@
 <?php
 
-use Laravel\Sanctum\Sanctum;
-
 return [
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', '')),
     'guard' => ['web'],
