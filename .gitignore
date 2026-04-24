@@ -1,0 +1,41 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.backup
+
+# Laravel runtime (ex2-feature)
+/ex2-feature/storage/*.key
+/ex2-feature/storage/framework/cache/*
+/ex2-feature/storage/framework/sessions/*
+/ex2-feature/storage/framework/views/*
+/ex2-feature/storage/logs/*
+/ex2-feature/bootstrap/cache/*
+!/ex2-feature/storage/framework/cache/.gitkeep
+!/ex2-feature/storage/framework/sessions/.gitkeep
+!/ex2-feature/storage/framework/views/.gitkeep
+!/ex2-feature/storage/logs/.gitkeep
+!/ex2-feature/bootstrap/cache/.gitkeep
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache
+/ex2-feature/.phpunit.cache
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
