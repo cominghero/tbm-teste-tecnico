@@ -30,24 +30,34 @@ class AtendimentoController extends Controller
         // Never trust a client-controlled header for tenant scoping.
         $tenant = $request->user()->tenant_id;
 
-        $where = [];
-        $where[] = 'a.tenant_id = "' . $tenant . '"';
-        if ($request->has('status')) {
-            $where[] = 'a.status = "' . $request->status . '"';
+        // Fix C1: filters are validated and applied through the query builder,
+        // so values are parameter-bound instead of concatenated into SQL.
+        // Also addresses H4 (pagination) and H6 (data_fim without a paired check).
+        $validated = $request->validate([
+            'status'       => 'sometimes|string',
+            'profissional' => 'sometimes|string',
+            'data_inicio'  => 'sometimes|required_with:data_fim|date',
+            'data_fim'     => 'sometimes|required_with:data_inicio|date|after_or_equal:data_inicio',
+        ]);
+
+        $query = DB::table('atendimentos as a')
+            ->join('pacientes as p', 'a.paciente_id', '=', 'p.id')
+            ->join('profissionais as pr', 'a.profissional_id', '=', 'pr.id')
+            ->where('a.tenant_id', $tenant);
+
+        if (isset($validated['status'])) {
+            $query->where('a.status', $validated['status']);
         }
-        if ($request->has('profissional')) {
-            $where[] = 'pr.nome like "%' . $request->profissional . '%"';
+
+        if (isset($validated['profissional'])) {
+            $query->where('pr.nome', 'like', '%' . $validated['profissional'] . '%');
         }
-        if ($request->has('data_inicio')) {
-            $where[] = 'a.data BETWEEN "' . $request->data_inicio . '" AND "' . $request->data_fim . '"';
+
+        if (isset($validated['data_inicio'], $validated['data_fim'])) {
+            $query->whereBetween('a.data', [$validated['data_inicio'], $validated['data_fim']]);
         }
-        $whereRaw = implode(' AND ', $where);
-        $atendimentos = DB::table('atendimentos as a')
-            ->join('pacientes p', 'a.paciente_id', '=', 'p.id')
-            ->join('profissionais pr', 'a.profissional_id', '=', 'pr.id')
-            ->whereRaw($whereRaw)
-            ->get();
-        return response()->json($atendimentos);
+
+        return response()->json($query->paginate(50));
     }
 
     // Cria atendimento
