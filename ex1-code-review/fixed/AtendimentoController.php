@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Paciente;
 use App\Models\Atendimento;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AtendimentoController extends Controller
@@ -78,14 +79,30 @@ class AtendimentoController extends Controller
         return response()->json($atendimento);
     }
 
-    // Download de evolução clínica
-    public function downloadEvolucao($userId, $fileName)
+    // Download de evolução clínica.
+    // Takes the attendance id instead of (userId, fileName) so the file
+    // path is derived from an authorized record, not the URL.
+    public function downloadEvolucao(Request $request, $atendimentoId)
     {
-        $filePath = 'app/users/' . $userId . '/' . $fileName;
-        if (Storage::disk('local')->exists($filePath)) {
-            return Storage::disk('local')->download($filePath);
+        $atendimento = Atendimento::where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($atendimentoId);
+
+        $this->authorize('viewEvolucao', $atendimento);
+
+        $fileName = basename($atendimento->evolucao_path);
+        $filePath = "atendimentos/{$atendimento->id}/{$fileName}";
+
+        if (!Storage::disk('local')->exists($filePath)) {
+            abort(404);
         }
-        abort(404);
+
+        Log::channel('audit')->info('evolucao_downloaded', [
+            'user_id'        => $request->user()->id,
+            'tenant_id'      => $request->user()->tenant_id,
+            'atendimento_id' => $atendimento->id,
+        ]);
+
+        return Storage::disk('local')->download($filePath);
     }
 
     // Upload de imagem do profissional
